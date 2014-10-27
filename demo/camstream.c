@@ -29,6 +29,7 @@
 #define MAX_RTP_SIZE 1420
 #define WIDTH 640
 #define HEIGHT 480
+#define FRAMERATE 15
 
 int main(int argc, char *argv[])
 {
@@ -57,7 +58,7 @@ int main(int argc, char *argv[])
 	capp.width = WIDTH;
 	capp.height = HEIGHT;
 	capp.pixfmt = vfmt;
-	capp.rate = 15;
+	capp.rate = FRAMERATE;
 
 	cvtp.inwidth = WIDTH;
 	cvtp.inheight = HEIGHT;
@@ -71,12 +72,12 @@ int main(int argc, char *argv[])
 	encp.enc_picwidth = WIDTH;
 	encp.enc_picheight = HEIGHT;
 	encp.chroma_interleave = 0;
-	encp.fps = 15;
-	encp.gop = 5;
+	encp.fps = FRAMERATE;
+	encp.gop = 30;
 	encp.bitrate = 800;
 
 	pacp.framerate = encp.fps;
-	pacp.max_pkt_len = 1400;
+	pacp.max_pkt_len = MAX_RTP_SIZE - 20;
 	pacp.ssrc = 10;
 
     netp.type = UDP;
@@ -175,7 +176,7 @@ int main(int argc, char *argv[])
                 ret = net_send(nethandle, pac_buf, pac_len);
 				if (ret != pac_len)
 				{
-					printf("send rtp data failed, size: %d, err: %s\n", pac_len,
+					printf("send pack data failed, size: %d, err: %s\n", pac_len,
 							strerror(errno));
 				}
 			}
