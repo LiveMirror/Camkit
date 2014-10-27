@@ -26,9 +26,9 @@ Camkit的视频采集采用标准的**V4L**接口，通常的USB摄像头均可�
 
 Camkit的色彩转换和H264编码支持三种平台，分别是是：
 
-    1. **Raspberry Pi** (采用OpenMax硬编码，依赖于ilclient.a， vcsm.so， bcm_host.so， openmaxil.so等库，由于色彩转换部分使用了ffmpeg，因此还依赖于其中的swscale库)
-    2. **Freescale I.MX6** (采用IPU和VPU硬编码，依赖于ipu.so和vpu.so)
-    3. **FFmpeg** (采用ffmpeg编码，依赖于avcodec.so和swscale.so)
+    1. FFmpeg (采用ffmpeg编码，依赖于avcodec.so和swscale.so)
+    2. Raspberry Pi (采用OpenMax硬编码，依赖于ilclient.a， vcsm.so， bcm_host.so， openmaxil.so等库，由于色彩转换部分使用了ffmpeg，因此还依赖于其中的swscale库)
+    3. Freescale I.MX6 (采用IPU和VPU硬编码，依赖于ipu.so和vpu.so)
 
 ### 使用
 Camkit的接口非常简单方便，每个子功能均遵循类似的接口。
@@ -42,7 +42,7 @@ Camkit的接口非常简单方便，每个子功能均遵循类似的接口。
 一般调用步骤如下：
 
     ```C
-    struct cap_handle *caphandle;    // capture操作符
+    struct cap_handle *caphandle = NULL;    // capture操作符
     struct cvt_handle *cvthandle = NULL;   // convert操作符
     struct enc_handle *enchandle = NULL;   // encode操作符
     struct pac_handle *pachandle = NULL;   // pack操作符
@@ -106,3 +106,18 @@ Camkit的接口非常简单方便，每个子功能均遵循类似的接口。
 Note: 其中的每一个子功能都可以独立使用，例如只做采集，或者图像编码之后写入文件而不做打包和发送等等。
 
 PS: demo目录有两个完整的例子，可以参考之。
+
+### 实例
+demo/camstream.c是一个演示实例，实现了实时发送视频流的功能。
+
+假设我们要在树莓派上使用Camkit，树莓派和PC连在同一个路由器上。
+
+首先，配置相应的选项并完成编译，在demo目录下可以看到一个camstream的可执行程序，将camkit.so和camstream一起拷贝到树莓派上。
+
+然后，在PC上打开demo/video.sdp文件，修改ip地址为PC的ip地址，假设为192.168.1.2，设置端口，假设为8888。运行VLC播放器，打开demo/video.sdp文件。
+
+最后，在树莓派上运行：
+    
+    #camstream  192.168.1.2 8888
+    
+至此，就可以在PC端中看到树莓派的实时视频了。

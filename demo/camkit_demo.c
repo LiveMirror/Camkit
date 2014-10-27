@@ -30,11 +30,6 @@
 #include <stdint.h>
 #include "camkit.h"
 
-#define SEPARATOR_BYTES 8
-const uint8_t SEPARATOR[SEPARATOR_BYTES] =
-{
-    0x53, 0x45, 0x50, 0x41, 0x52, 0x41, 0x54, 0x45
-};   // "separate", 8 Bytes
 FILE *outfd = NULL;
 int quit;
 int debug = 0;
