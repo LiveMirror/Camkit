@@ -222,7 +222,7 @@ struct enc_handle *encode_open(struct enc_param param)
 	}
 
 	// set new avcConfig
-	avcConfig.nPFrames = handle->params.gop;
+	avcConfig.nPFrames = handle->params.gop - 1;
 	ret = OMX_SetParameter(ILC_GET_HANDLE(handle->video_encode),
 			OMX_IndexParamVideoAvc, &avcConfig);
 	if (ret != OMX_ErrorNone)

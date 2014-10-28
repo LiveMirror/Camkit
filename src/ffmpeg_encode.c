@@ -87,7 +87,7 @@ struct enc_handle *encode_open(struct enc_param param)
 	handle->ctx->gop_size = handle->params.gop;
 	handle->ctx->max_b_frames = 1;
 	handle->ctx->pix_fmt = AV_PIX_FMT_YUV420P;
-	handle->ctx->thread_count = 0;  // don't use multi-threads, it's unsafe for decoded outbuf
+//	handle->ctx->thread_count = 1;
 	// eliminate frame delay!
 	av_opt_set(handle->ctx->priv_data, "preset", "superfast", 0);
 	av_opt_set(handle->ctx->priv_data, "tune", "zerolatency", 0);
