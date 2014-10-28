@@ -23,6 +23,7 @@
 #include <string.h>
 #include <assert.h>
 #include <arpa/inet.h>
+#include <sys/timeb.h>
 #include "camkit/pack.h"
 
 #define H264    96
@@ -92,11 +93,18 @@ struct pac_handle
     int nalu_complete;
     nalu_t nalu;
     unsigned short seq_num;
-    unsigned int timestamp_increase;
-    unsigned int ts_current;
+    U32 ts_start_millisec;		// timestamp in millisecond
+    U32 ts_current_sample;		// timestamp in 1/90000.0 unit
 
     struct pac_param params;
 };
+
+static U32 get_current_millisec(void)
+{
+	struct timeb tb;
+	ftime(&tb);
+	return 1000 * tb.time + tb.millitm;
+}
 
 struct pac_handle *pack_open(struct pac_param params)
 {
@@ -108,12 +116,10 @@ struct pac_handle *pack_open(struct pac_param params)
     handle->FU_index = 0;
     handle->nalu.data = NULL;
     handle->seq_num = 0;
-    handle->ts_current = 0;
-    handle->params.framerate = params.framerate;
+    handle->ts_current_sample = 0;
     handle->params.max_pkt_len = params.max_pkt_len;
     handle->params.ssrc = params.ssrc;
-    handle->timestamp_increase = (unsigned int) (90000.0
-            / handle->params.framerate + 0.5);
+    handle->ts_start_millisec = get_current_millisec();	// save the startup time
 
     printf("+++ Pack Opened\n");
     return handle;
@@ -244,8 +250,8 @@ int pack_get(struct pac_handle *handle, void *outbuf, int bufsize, int *outsize)
 //		dump_nalu(&handle->nalu);
 
         rtp_hdr->seq_no = htons(handle->seq_num++);    // increase for every RTP packet
-        handle->ts_current += handle->timestamp_increase;    // increase for only a new NALU
-        rtp_hdr->timestamp = htonl(handle->ts_current);
+        handle->ts_current_sample = (U32) ((get_current_millisec() - handle->ts_start_millisec) * 90.0);    // calculate the timestamp for a new NALU
+        rtp_hdr->timestamp = htonl(handle->ts_current_sample);
         // handle the new NALU
         if (handle->nalu.len <= handle->params.max_pkt_len)    // no need to fragment
         {
@@ -318,7 +324,7 @@ int pack_get(struct pac_handle *handle, void *outbuf, int bufsize, int *outsize)
     else    // send remaining FUs
     {
         rtp_hdr->seq_no = htons(handle->seq_num++);
-        rtp_hdr->timestamp = htonl(handle->ts_current);    // no increase
+        rtp_hdr->timestamp = htonl(handle->ts_current_sample);    // it's a continuation to the last NALU, no need to recalculate
 
         // check if it's the last FU
         if (handle->FU_index == handle->FU_counter)    // the last FU

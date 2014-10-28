@@ -76,7 +76,6 @@ int main(int argc, char *argv[])
 	encp.gop = 30;
 	encp.bitrate = 800;
 
-	pacp.framerate = encp.fps;
 	pacp.max_pkt_len = MAX_RTP_SIZE - 20;
 	pacp.ssrc = 10;
 
