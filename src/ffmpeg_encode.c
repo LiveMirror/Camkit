@@ -89,8 +89,10 @@ struct enc_handle *encode_open(struct enc_param param)
 	handle->ctx->pix_fmt = AV_PIX_FMT_YUV420P;
 //	handle->ctx->thread_count = 1;
 	// eliminate frame delay!
-	av_opt_set(handle->ctx->priv_data, "preset", "superfast", 0);
+	av_opt_set(handle->ctx->priv_data, "preset", "ultrafast", 0);
 	av_opt_set(handle->ctx->priv_data, "tune", "zerolatency", 0);
+	av_opt_set(handle->ctx->priv_data, "x264opts",
+			"no-mbtree:sliced-threads:sync-lookahead=0", 0);
 
 	if (avcodec_open2(handle->ctx, handle->codec, NULL) < 0)
 	{
@@ -216,7 +218,8 @@ int encode_set_qp(struct enc_handle *handle, int val)
 {
 	UNUSED(handle);
 	UNUSED(val);
-	printf("*** %s.%s: This function is not implemented\n", __FILE__, __FUNCTION__);
+	printf("*** %s.%s: This function is not implemented\n", __FILE__,
+			__FUNCTION__);
 	return -1;
 }
 

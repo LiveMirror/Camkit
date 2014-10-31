@@ -29,9 +29,9 @@ enum net_t
 
 struct net_param
 {
-        enum net_t type;
-        char * serip;
-        int serport;
+        enum net_t type;		// UDP or TCP?
+        char * serip;			// server ip, eg: "127.0.0.1"
+        int serport;			// server port, eg: 8000
 };
 
 struct net_handle;
