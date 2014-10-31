@@ -245,23 +245,6 @@ struct enc_handle *encode_open(struct enc_param param)
 	}
 	printf("+++ nPFrames set to: %u\n", avcConfig.nPFrames);
 
-	// require the encoder to configure the low-latency mode
-	OMX_CONFIG_BOOLEANTYPE lowLatency;
-	memset(&lowLatency, 0, sizeof(OMX_CONFIG_BOOLEANTYPE));
-	lowLatency.nSize = sizeof(OMX_CONFIG_BOOLEANTYPE);
-	lowLatency.nVersion.nVersion = OMX_VERSION;
-	lowLatency.bEnabled = OMX_TRUE;
-	if (OMX_SetConfig(ILC_GET_HANDLE(handle->video_encode),
-			OMX_IndexConfigBrcmVideoH264LowLatency, &lowLatency)
-			!= OMX_ErrorNone)
-	{
-		printf("!!! OMX_SetConfig for lowLatency failed\n");
-	}
-	else
-	{
-		printf("+++ Set lowLatency OK\n");
-	}
-
 	// change il state
 	if (ilclient_change_component_state(handle->video_encode, OMX_StateIdle)
 			== -1)
@@ -393,6 +376,8 @@ int encode_do(struct enc_handle *handle, void *ibuf, int ilen, void **pobuf,
 int encode_get_headers(struct enc_handle *handle, void **pbuf, int *plen,
 		enum pic_t *type)
 {
+    UNUSED(handle);
+
 	*pbuf = NULL;
 	*plen = 0;
 	*type = NONE;
@@ -422,10 +407,10 @@ int encode_set_bitrate(struct enc_handle *handle, int val)
 {
 	OMX_VIDEO_CONFIG_BITRATETYPE tbitrate;
 	memset(&tbitrate, 0, sizeof(OMX_VIDEO_CONFIG_BITRATETYPE));
-	tbitrate->nSize = sizeof(OMX_VIDEO_CONFIG_BITRATETYPE);
-	tbitrate->nVersion.nVersion = OMX_VERSION;
-	tbitrate->nPortIndex = OMX_VIDENC_OUTPUT_PORT;
-	tbitrate->nEncodeBitrate = val * 1000;
+	tbitrate.nSize = sizeof(OMX_VIDEO_CONFIG_BITRATETYPE);
+	tbitrate.nVersion.nVersion = OMX_VERSION;
+	tbitrate.nPortIndex = OMX_VIDENC_OUTPUT_PORT;
+	tbitrate.nEncodeBitrate = val * 1000;
 
 	OMX_ERRORTYPE ret = OMX_SetConfig(ILC_GET_HANDLE(handle->video_encode),
 			OMX_IndexConfigVideoBitrate, &tbitrate);
@@ -445,10 +430,10 @@ int encode_set_framerate(struct enc_handle *handle, int val)
 {
 	OMX_CONFIG_FRAMERATETYPE framerate;
 	memset(&framerate, 0, sizeof(OMX_CONFIG_FRAMERATETYPE));
-	framerate->nSize = sizeof(OMX_CONFIG_FRAMERATETYPE);
-	framerate->nVersion.nVersion = OMX_VERSION;
-	framerate->nPortIndex = OMX_VIDENC_OUTPUT_PORT;
-	framerate->xEncodeFramerate = val;
+	framerate.nSize = sizeof(OMX_CONFIG_FRAMERATETYPE);
+	framerate.nVersion.nVersion = OMX_VERSION;
+	framerate.nPortIndex = OMX_VIDENC_OUTPUT_PORT;
+	framerate.xEncodeFramerate = val;
 
 	OMX_ERRORTYPE ret = OMX_SetConfig(ILC_GET_HANDLE(handle->video_encode),
 			OMX_IndexConfigVideoFramerate, &framerate);
@@ -468,9 +453,9 @@ void encode_force_Ipic(struct enc_handle *handle)
 
 	OMX_CONFIG_BOOLEANTYPE requestIFrame;
 	memset(&requestIFrame, 0, sizeof(OMX_CONFIG_BOOLEANTYPE));
-	requestIFrame->nSize = sizeof(OMX_CONFIG_BOOLEANTYPE);
-	requestIFrame->nVersion.nVersion = OMX_VERSION;
-	requestIFrame->bEnabled = OMX_TRUE;		// this automatically resets itself.
+	requestIFrame.nSize = sizeof(OMX_CONFIG_BOOLEANTYPE);
+	requestIFrame.nVersion.nVersion = OMX_VERSION;
+	requestIFrame.bEnabled = OMX_TRUE;		// this automatically resets itself.
 
 	OMX_ERRORTYPE ret = OMX_SetConfig(ILC_GET_HANDLE(handle->video_encode),
 			OMX_IndexConfigBrcmVideoRequestIFrame, &requestIFrame);
