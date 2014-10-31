@@ -245,6 +245,23 @@ struct enc_handle *encode_open(struct enc_param param)
 	}
 	printf("+++ nPFrames set to: %u\n", avcConfig.nPFrames);
 
+	// require the encoder to configure the low-latency mode
+	OMX_CONFIG_BOOLEANTYPE lowLatency;
+	memset(&lowLatency, 0, sizeof(OMX_CONFIG_BOOLEANTYPE));
+	lowLatency.nSize = sizeof(OMX_CONFIG_BOOLEANTYPE);
+	lowLatency.nVersion.nVersion = OMX_VERSION;
+	lowLatency.bEnabled = OMX_TRUE;
+	if (OMX_SetConfig(ILC_GET_HANDLE(handle->video_encode),
+			OMX_IndexConfigBrcmVideoH264LowLatency, &lowLatency)
+			!= OMX_ErrorNone)
+	{
+		printf("!!! OMX_SetConfig for lowLatency failed\n");
+	}
+	else
+	{
+		printf("+++ Set lowLatency OK\n");
+	}
+
 	// change il state
 	if (ilclient_change_component_state(handle->video_encode, OMX_StateIdle)
 			== -1)
@@ -387,13 +404,23 @@ int encode_set_qp(struct enc_handle *handle, int val)
 {
 	UNUSED(handle);
 	UNUSED(val);
-	printf("*** %s.%s: This function is not implemented\n", __FILE__, __FUNCTION__);
+	printf("*** %s.%s: This function is not implemented\n", __FILE__,
+			__FUNCTION__);
+	return -1;
+}
+
+int encode_set_gop(struct enc_handle *handle, int val)
+{
+	UNUSED(handle);
+	UNUSED(val);
+	printf("*** %s.%s: This function is not implemented\n", __FILE__,
+			__FUNCTION__);
 	return -1;
 }
 
 int encode_set_bitrate(struct enc_handle *handle, int val)
 {
-	OMX_VIDEO_CONFIG_BITRATETYPE *tbitrate;
+	OMX_VIDEO_CONFIG_BITRATETYPE tbitrate;
 	memset(&tbitrate, 0, sizeof(OMX_VIDEO_CONFIG_BITRATETYPE));
 	tbitrate->nSize = sizeof(OMX_VIDEO_CONFIG_BITRATETYPE);
 	tbitrate->nVersion.nVersion = OMX_VERSION;
@@ -416,7 +443,7 @@ int encode_set_bitrate(struct enc_handle *handle, int val)
 
 int encode_set_framerate(struct enc_handle *handle, int val)
 {
-	OMX_CONFIG_FRAMERATETYPE *framerate;
+	OMX_CONFIG_FRAMERATETYPE framerate;
 	memset(&framerate, 0, sizeof(OMX_CONFIG_FRAMERATETYPE));
 	framerate->nSize = sizeof(OMX_CONFIG_FRAMERATETYPE);
 	framerate->nVersion.nVersion = OMX_VERSION;
@@ -431,13 +458,26 @@ int encode_set_framerate(struct enc_handle *handle, int val)
 		return -1;
 	}
 
-	printf("--- Set framerate to %\n", val);
+	printf("--- Set framerate to %d\n", val);
 	return 0;
 }
 
 void encode_force_Ipic(struct enc_handle *handle)
 {
 	UNUSED(handle);
-	printf("*** %s.%s: This function is not implemented\n", __FILE__, __FUNCTION__);
+
+	OMX_CONFIG_BOOLEANTYPE requestIFrame;
+	memset(&requestIFrame, 0, sizeof(OMX_CONFIG_BOOLEANTYPE));
+	requestIFrame->nSize = sizeof(OMX_CONFIG_BOOLEANTYPE);
+	requestIFrame->nVersion.nVersion = OMX_VERSION;
+	requestIFrame->bEnabled = OMX_TRUE;		// this automatically resets itself.
+
+	OMX_ERRORTYPE ret = OMX_SetConfig(ILC_GET_HANDLE(handle->video_encode),
+			OMX_IndexConfigBrcmVideoRequestIFrame, &requestIFrame);
+	if (ret != OMX_ErrorNone)
+	{
+		printf("--- failed to force IPic\n");
+	}
+
 	return;
 }
