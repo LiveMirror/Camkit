@@ -53,7 +53,7 @@ void display_usage(void)
 			"\n\t7: capture + convert + encode + pack"
 			"\n\t15: capture + convert + encode + pack + network\n");
 	printf("-i video device, (\"/dev/video0\")\n");
-	printf("-o h264 output file (no output)\n");
+	printf("-o dump to file (no dump)\n");
 	printf("-a ip address of stream server (none)\n");
 	printf("-p port of stream server (none)\n");
 	printf("-c capture pixel format 0:YUYV, 1:YUV420 (YUYV)\n");
