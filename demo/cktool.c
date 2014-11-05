@@ -43,7 +43,7 @@ void quit_func(int sig)
 
 void display_usage(void)
 {
-	printf("Usage: capenc_demo [options]\n");
+	printf("Usage: #cktool [options]\n");
 	printf("-? help\n");
 	printf("-d debug on\n");
 	printf("-s 0/1/3/7/15 set stage, "

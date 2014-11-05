@@ -1,7 +1,10 @@
 ## Camkit (Camera toolKit)
 Camkit是一个摄像头相关的工具箱，使用C语言写成，包含了从：图像采集-->色彩转换-->H264编码-->RTP打包-->网络发送的全套接口。
 
+可到[这里](ftp://ftp.andy87.com/camkit)下载已编译好的二进制版本。
+
 ### 编译
+
 Camkit采用**cmake**构建系统，编译之前请确认已经安装了cmake。
 
 遵循以下步骤完成编译和安装：
@@ -174,7 +177,7 @@ demo/camstream.c是一个演示实例，实现了实时发送视频流的功能�
 
 假设我们要在树莓派上使用Camkit，树莓派和PC连在同一个路由器上。
 
-首先，按照上面的讲解完成编译，在`build/demo`目录下可以看到一个`camstream`的可执行程序。
+首先，按照上面的讲解完成编译，在`build/demo`目录下可以看到一个`cktool`的可执行程序。
 
 配置树莓派开启摄像头支持并分配`gpu_mem`，`Raspbian`系统通过`sudo raspi-config`，`Arch`系统参见[Wiki](https://wiki.archlinux.org/index.php/Raspberry_Pi)。
 
@@ -182,6 +185,6 @@ demo/camstream.c是一个演示实例，实现了实时发送视频流的功能�
 
 最后，在树莓派上运行：
     
-    #camstream 192.168.1.2 8888
+    #cktool -s 15 -a 192.168.1.2 -p 8888
     
 至此，应该就可以在PC端看到树莓派的实时视频了。

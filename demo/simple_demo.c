@@ -35,7 +35,7 @@ int main(int argc, char *argv[])
 {
     if (argc < 3)
     {
-        printf("Usage: #videostream ip port\n");
+        printf("Usage: #simple_demo ip port\n");
         return  -1;
     }
 
