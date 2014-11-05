@@ -23,6 +23,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <errno.h>
 #include <linux/videodev2.h>
 #include <sys/time.h>
 #include <pthread.h>
@@ -30,8 +31,9 @@
 #include <stdint.h>
 #include "camkit.h"
 
+#define MAX_RTP_SIZE 1420
 FILE *outfd = NULL;
-int quit;
+int quit = 0;
 int debug = 0;
 
 void quit_func(int sig)
@@ -44,14 +46,20 @@ void display_usage(void)
 	printf("Usage: capenc_demo [options]\n");
 	printf("-? help\n");
 	printf("-d debug on\n");
-	printf(
-			"-s 0/1/2/3 set stage, 0: capture only, 1: capture + convert, 2: capture + encode 3: capture + convert + encode (3)\n");
+	printf("-s 0/1/3/7/15 set stage, "
+			"\n\t0: capture only"
+			"\n\t1: capture + convert"
+			"\n\t3: capture + convert + encode (default)"
+			"\n\t7: capture + convert + encode + pack"
+			"\n\t15: capture + convert + encode + pack + network\n");
 	printf("-i video device, (\"/dev/video0\")\n");
 	printf("-o h264 output file (no output)\n");
+	printf("-a ip address of stream server (none)\n");
+	printf("-p port of stream server (none)\n");
 	printf("-c capture pixel format 0:YUYV, 1:YUV420 (YUYV)\n");
 	printf("-w width (640)\n");
 	printf("-h height (480)\n");
-	printf("-r bitrate kbps (4000)\n");
+	printf("-r bitrate kbps (1000)\n");
 	printf("-f fps (15)\n");
 	printf("-t chroma interleaved (0)\n");
 	printf("-g size of group of pictures (12)\n");
@@ -62,10 +70,13 @@ int main(int argc, char *argv[])
 	struct cap_handle *caphandle = NULL;
 	struct cvt_handle *cvthandle = NULL;
 	struct enc_handle *enchandle = NULL;
+	struct pac_handle *pachandle = NULL;
+	struct net_handle *nethandle = NULL;
 	struct cap_param capp;
 	struct cvt_param ipup;
 	struct enc_param vpup;
-	unsigned long count = 0;
+	struct pac_param pacp;
+	struct net_param netp;
 	int stage = 0b00000011;
 
 	U32 vfmt = V4L2_PIX_FMT_YUYV;
@@ -92,12 +103,19 @@ int main(int argc, char *argv[])
 	vpup.chroma_interleave = 0;
 	vpup.fps = 15;
 	vpup.gop = 12;
-	vpup.bitrate = 4000;
+	vpup.bitrate = 1000;
+
+	pacp.max_pkt_len = 1400;
+	pacp.ssrc = 1234;
+
+	netp.serip = NULL;
+	netp.serport = -1;
+	netp.type = UDP;
 
 	char *outfile = NULL;
 	// options
 	int opt = 0;
-	static const char *optString = "?di:o:w:h:r:f:t:g:s:c:";
+	static const char *optString = "?di:o:a:p:w:h:r:f:t:g:s:c:";
 
 	opt = getopt(argc, argv, optString);
 	while (opt != -1)
@@ -113,14 +131,18 @@ int main(int argc, char *argv[])
 				break;
 			case 's':
 				stage = atoi(optarg);
-				if (stage < 0 || stage > 3)
-					stage = 3;
 				break;
 			case 'i':
 				capp.dev_name = optarg;
 				break;
 			case 'o':
 				outfile = optarg;
+				break;
+			case 'a':
+				netp.serip = optarg;
+				break;
+			case 'p':
+				netp.serport = atoi(optarg);
 				break;
 			case 'c':
 				fmt = atoi(optarg);
@@ -189,10 +211,39 @@ int main(int argc, char *argv[])
 			return -1;
 		}
 	}
+
+	if ((stage & 0b00000100) != 0)
+	{
+		pachandle = pack_open(pacp);
+		if (!pachandle)
+		{
+			printf("--- Open pack failed\n");
+			return -1;
+		}
+	}
+
+	if ((stage & 0b00001000) != 0)
+	{
+		if (netp.serip == NULL || netp.serport == -1)
+		{
+			printf(
+					"--- Server ip and port must be specified when using network\n");
+			return -1;
+		}
+
+		nethandle = net_open(netp);
+		if (!nethandle)
+		{
+			printf("--- Open network failed\n");
+			return -1;
+		}
+	}
+
 	// start capture encode loop
 	int ret;
 	void *cap_buf, *cvt_buf, *hd_buf, *enc_buf;
-	int cap_len, cvt_len, hd_len, enc_len;
+	char *pac_buf = (char *) malloc(MAX_RTP_SIZE);
+	int cap_len, cvt_len, hd_len, enc_len, pac_len;
 	enum pic_t ptype;
 	struct timeval ctime, ltime;
 	unsigned long fps_counter = 0;
@@ -204,7 +255,7 @@ int main(int argc, char *argv[])
 	gettimeofday(&ltime, NULL);
 	while (!quit)
 	{
-		if (debug)		// fps stuff
+		if (debug)		// print fps
 		{
 			gettimeofday(&ctime, NULL);
 			sec = ctime.tv_sec - ltime.tv_sec;
@@ -218,7 +269,7 @@ int main(int argc, char *argv[])
 
 			if (stat_time >= 1000000)    // >= 1s
 			{
-				printf("********* FPS: %ld\n", fps_counter);
+				printf("\n*** FPS: %ld\n", fps_counter);
 
 				fps_counter = 0;
 				ltime = ctime;
@@ -245,31 +296,24 @@ int main(int argc, char *argv[])
 			printf("!!! No capture data\n");
 			continue;
 		}
-		// else
-
 		if (debug)
 			fputc('.', stdout);
 
-		if ((stage & 0b00000011) == 0)    // no convert, no encode, capture only
+		if ((stage & 0b00000001) == 0)    // no convert, capture only
 		{
 			if (outfd)
 				fwrite(cap_buf, 1, cap_len, outfd);
 
-			fflush(stdout);
-			if (count++ > 100)
-			{
-				printf("\n");
-				count = 0;
-			}
 			continue;
 		}
 
-		if ((stage & 0b00000001) == 0)    // no convert
+		// convert
+		if (capp.pixfmt == V4L2_PIX_FMT_YUV420)    // no need to convert
 		{
 			cvt_buf = cap_buf;
 			cvt_len = cap_len;
 		}
-		else	// do convert
+		else	// do convert: YUYV => YUV420
 		{
 			ret = convert_do(cvthandle, cap_buf, cap_len, &cvt_buf, &cvt_len);
 			if (ret < 0)
@@ -282,35 +326,59 @@ int main(int argc, char *argv[])
 				printf("!!! No convert data\n");
 				continue;
 			}
-			// else
-
-			if (debug)
-				fputc('_', stdout);
 		}
+		if (debug)
+			fputc('-', stdout);
 
 		if ((stage & 0b00000010) == 0)		// no encode
 		{
 			if (outfd)
 				fwrite(cvt_buf, 1, cvt_len, outfd);
 
-			fflush(stdout);
-			if (count++ > 100)
-			{
-				printf("\n");
-				count = 0;
-			}
 			continue;
 		}
 
+		// encode
 		// fetch h264 headers first!
 		while ((ret = encode_get_headers(enchandle, &hd_buf, &hd_len, &ptype))
 				!= 0)
 		{
-			if (outfd)
-				fwrite(hd_buf, 1, hd_len, outfd);
-
 			if (debug)
 				fputc('S', stdout);
+
+			if ((stage & 0b00000100) == 0)		// no pack
+			{
+				if (outfd)
+					fwrite(hd_buf, 1, hd_len, outfd);
+
+				continue;
+			}
+
+			// pack headers
+			pack_put(pachandle, hd_buf, hd_len);
+			while (pack_get(pachandle, pac_buf, MAX_RTP_SIZE, &pac_len) == 1)
+			{
+				if (debug)
+					fputc('#', stdout);
+
+				if ((stage & 0b00001000) == 0)    // no network
+				{
+					if (outfd)
+						fwrite(pac_buf, 1, pac_len, outfd);
+
+					continue;
+				}
+
+				// network
+				ret = net_send(nethandle, pac_buf, pac_len);
+				if (ret != pac_len)
+				{
+					printf("send pack failed, size: %d, err: %s\n", pac_len,
+							strerror(errno));
+				}
+				if (debug)
+					fputc('>', stdout);
+			}
 		}
 
 		ret = encode_do(enchandle, cvt_buf, cvt_len, &enc_buf, &enc_len,
@@ -325,10 +393,6 @@ int main(int argc, char *argv[])
 			printf("!!! No encode data\n");
 			continue;
 		}
-		// else
-
-		if (outfd)
-			fwrite(enc_buf, 1, enc_len, outfd);
 
 		if (debug)
 		{
@@ -354,18 +418,51 @@ int main(int argc, char *argv[])
 					c = 'N';
 					break;
 			}
-			fputc(c, stdout);
-			fflush(stdout);
 
-			if (count++ > 100)
+			fputc(c, stdout);
+		}
+
+		if ((stage & 0b00000100) == 0)		// no pack
+		{
+			if (outfd)
+				fwrite(enc_buf, 1, enc_len, outfd);
+
+			continue;
+		}
+
+		// pack
+		pack_put(pachandle, enc_buf, enc_len);
+		while (pack_get(pachandle, pac_buf, MAX_RTP_SIZE, &pac_len) == 1)
+		{
+			if (debug)
+				fputc('#', stdout);
+
+			if ((stage & 0b00001000) == 0)    // no network
 			{
-				printf("\n");
-				count = 0;
+				if (outfd)
+					fwrite(pac_buf, 1, pac_len, outfd);
+
+				continue;
 			}
+
+			// network
+			ret = net_send(nethandle, pac_buf, pac_len);
+			if (ret != pac_len)
+			{
+				printf("send pack failed, size: %d, err: %s\n", pac_len,
+						strerror(errno));
+			}
+			if (debug)
+				fputc('>', stdout);
 		}
 	}
 	capture_stop(caphandle);
 
+	free(pac_buf);
+	if ((stage & 0b00001000) != 0)
+		net_close(nethandle);
+	if ((stage & 0b00000100) != 0)
+		pack_close(pachandle);
 	if ((stage & 0b00000010) != 0)
 		encode_close(enchandle);
 	if ((stage & 0b00000001) != 0)
