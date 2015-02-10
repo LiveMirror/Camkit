@@ -72,10 +72,16 @@ void capture_stop(struct cap_handle *handle);
  */
 int capture_get_data(struct cap_handle *handle, void **pbuf, int *plen);
 
+int capture_query_brightness(struct cap_handle *handle, int *min, int *max, int *step);
+int capture_get_brightness(struct cap_handle *handle, int *val);
 int capture_set_brightness(struct cap_handle *handle, int val);
 
+int capture_query_contrast(struct cap_handle *handle, int *min, int *max, int *step);
+int capture_get_contrast(struct cap_handle *handle, int *val);
 int capture_set_contrast(struct cap_handle *handle, int val);
 
+int capture_query_saturation(struct cap_handle *handle, int *min, int *max, int *step);
+int capture_get_saturation(struct cap_handle *handle, int *val);
 int capture_set_saturation(struct cap_handle *handle, int val);
 
 #endif /* CAPTURE_H */

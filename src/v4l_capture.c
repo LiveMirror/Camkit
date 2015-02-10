@@ -113,7 +113,7 @@ static int init_mmap(struct cap_handle *handle)
 		}
 		handle->buffers[handle->nbuffers].length = buf.length;
 		handle->buffers[handle->nbuffers].start = mmap(NULL, buf.length,
-				PROT_READ | PROT_WRITE, MAP_SHARED, handle->fd, buf.m.offset);
+		PROT_READ | PROT_WRITE, MAP_SHARED, handle->fd, buf.m.offset);
 		if (MAP_FAILED == handle->buffers[handle->nbuffers].start)
 		{
 			printf("--- Index: %d, memory map failed\n", handle->nbuffers);
@@ -195,8 +195,9 @@ static int init_device(struct cap_handle *handle)
 					break;
 			}
 
-			printf("!!! Set crop to (%d, %d, %d, %d) failed!\n", crop.c.left,
-					crop.c.top, crop.c.width, crop.c.height);
+			printf(
+					"!!! Set crop to (%d, %d, %d, %d) failed. Don't panic, not all capture device support crop!\n",
+					crop.c.left, crop.c.top, crop.c.width, crop.c.height);
 		}
 		else
 		{
@@ -221,12 +222,16 @@ static int init_device(struct cap_handle *handle)
 	}
 	handle->image_size = fmt.fmt.pix.sizeimage;
 
-	printf("******************** Video Format *******************\n");
-	printf("fmt.fmt.pix.width = %d\n", fmt.fmt.pix.width);
-	printf("fmt.fmt.pix.height = %d\n", fmt.fmt.pix.height);
-	printf("fmt.fmt.pix.sizeimage = %d\n", fmt.fmt.pix.sizeimage);
-	printf("fmt.fmt.pix.bytesperline = %d\n", fmt.fmt.pix.bytesperline);
-	printf("*****************************************************\n");
+	// check setting result
+	if (fmt.fmt.pix.width != handle->params.width
+			|| fmt.fmt.pix.height != handle->params.height)
+	{
+		printf(
+				"--- Set resolution to (%d, %d) failed, the size your camera supports are (%d, %d)\n",
+				handle->params.width, handle->params.height, fmt.fmt.pix.width,
+				fmt.fmt.pix.height);
+		return -1;
+	}
 
 	unsigned int min;
 	min = fmt.fmt.pix.width * 2;
@@ -266,7 +271,7 @@ struct cap_handle *capture_open(struct cap_param param)
 	if (!handle)
 	{
 		printf("--- malloc capture handle failed\n");
-		return NULL ;
+		return NULL;
 	}
 
 	CLEAR(*handle);
@@ -313,7 +318,7 @@ struct cap_handle *capture_open(struct cap_param param)
 	return handle;
 
 	err: free(handle);
-	return NULL ;
+	return NULL;
 }
 
 static void uninit_device(struct cap_handle *handle)
@@ -443,6 +448,33 @@ int capture_get_data(struct cap_handle *handle, void **buf, int *len)
 	return 0;
 }
 
+int capture_query_brightness(struct cap_handle *handle, int *min, int *max,
+		int *step)
+{
+	struct v4l2_queryctrl qctrl;
+	qctrl.id = V4L2_CID_BRIGHTNESS;
+	int ret = ioctl(handle->fd, VIDIOC_QUERYCTRL, &qctrl);
+	if (ret < 0)
+		return ret;
+
+	*min = qctrl.minimum;
+	*max = qctrl.maximum;
+	*step = qctrl.step;
+	return 0;
+}
+
+int capture_get_brightness(struct cap_handle *handle, int *val)
+{
+	struct v4l2_control ctrl;
+	ctrl.id = V4L2_CID_BRIGHTNESS;
+	int ret = ioctl(handle->fd, VIDIOC_G_CTRL, &ctrl);
+	if (ret < 0)
+		return ret;
+
+	*val = ctrl.value;
+	return 0;
+}
+
 int capture_set_brightness(struct cap_handle *handle, int val)
 {
 	struct v4l2_control ctrl;
@@ -454,6 +486,33 @@ int capture_set_brightness(struct cap_handle *handle, int val)
 	return 0;
 }
 
+int capture_query_contrast(struct cap_handle *handle, int *min, int *max,
+		int *step)
+{
+	struct v4l2_queryctrl qctrl;
+	qctrl.id = V4L2_CID_CONTRAST;
+	int ret = ioctl(handle->fd, VIDIOC_QUERYCTRL, &qctrl);
+	if (ret < 0)
+		return ret;
+
+	*min = qctrl.minimum;
+	*max = qctrl.maximum;
+	*step = qctrl.step;
+	return 0;
+}
+
+int capture_get_contrast(struct cap_handle *handle, int *val)
+{
+	struct v4l2_control ctrl;
+	ctrl.id = V4L2_CID_CONTRAST;
+	int ret = ioctl(handle->fd, VIDIOC_G_CTRL, &ctrl);
+	if (ret < 0)
+		return ret;
+
+	*val = ctrl.value;
+	return 0;
+}
+
 int capture_set_contrast(struct cap_handle *handle, int val)
 {
 	struct v4l2_control ctrl;
@@ -462,6 +521,33 @@ int capture_set_contrast(struct cap_handle *handle, int val)
 	int ret = ioctl(handle->fd, VIDIOC_S_CTRL, &ctrl);
 	if (ret < 0)
 		return ret;
+	return 0;
+}
+
+int capture_query_saturation(struct cap_handle *handle, int *min, int *max,
+		int *step)
+{
+	struct v4l2_queryctrl qctrl;
+	qctrl.id = V4L2_CID_SATURATION;
+	int ret = ioctl(handle->fd, VIDIOC_QUERYCTRL, &qctrl);
+	if (ret < 0)
+		return ret;
+
+	*min = qctrl.minimum;
+	*max = qctrl.maximum;
+	*step = qctrl.step;
+	return 0;
+}
+
+int capture_get_saturation(struct cap_handle *handle, int *val)
+{
+	struct v4l2_control ctrl;
+	ctrl.id = V4L2_CID_SATURATION;
+	int ret = ioctl(handle->fd, VIDIOC_G_CTRL, &ctrl);
+	if (ret < 0)
+		return ret;
+
+	*val = ctrl.value;
 	return 0;
 }
 
