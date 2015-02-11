@@ -29,8 +29,8 @@ Camkit的视频采集采用标准的**V4L**接口，通常的USB摄像头均可�
 Camkit的色彩转换和H264编码支持三种平台，分别是是：
 
     1. PC Desktop(采用ffmpeg编码，依赖于ffmpeg中的libavutil、libavcodec和libswscale库)
-    2. Raspberry Pi (采用GPU加速，依赖于vcos，vcsm， bcm_host， openmaxil等库，由于色彩转换部分使用了ffmpeg，因此还依赖于ffmpeg中的一些库)
-    3. Freescale I.MX6 (采用IPU和VPU硬编码，依赖于ipu.so和vpu.so)
+    2. Raspberry Pi (采用GPU加速，依赖于vcos，vcsm， bcm_host， openmaxil等库)
+    3. Freescale I.MX6 (采用IPU和VPU硬编码，依赖于ipu和vpu)
 
 #### PC平台编译安装
 
@@ -62,9 +62,7 @@ Camkit的色彩转换和H264编码支持三种平台，分别是是：
 
 使用GPU加速需要一些头文件和库，这些库一般都在`/opt/vc/`目录下，不需要另外安装。
 
-除了GPU加速所需的库之外，Camkit做色彩转换时仍然使用了ffmepg，因此需要在树莓派上先安装，方式与PC上的相同，通过`sudo apt-get install libavcodec54 libavcodec-dev libswscale2 libswscale-dev libavutil52 libavutil-dev`安装（如何是`Arch`平台使用`pacman -S ffmpeg`安装）。
-
-一切都做完之后就可以编译Camkit了，进入Camkit源码目录，使用如下命令编译安装：
+编译过程非常简单，进入Camkit源码目录，使用如下命令编译安装：
 
     ``` 
     mkdir build
@@ -170,10 +168,10 @@ demo/cktool.c是运用Camkit的一个工具，实现了Camkit支持的全部功�
 options：
 
 1. -? 显示帮助信息
-2. -d 是否显示调试信息
-3. -s 设置步骤 0/1/3/7/15 (0:只做采集,1:采集+转换, 3:采集+转换+编码(默认),7:采集＋转换+编码+打包,15:采集+转换+编码+打包+发送)
+2. -d 是否显示调试信息，每一步操作都用一种符号打印表示。
+3. -s 设置步骤 0/1/3/7/15 (0:只做采集, 1:采集+转换, 3:采集+转换+编码(默认), 7:采集＋转换+编码+打包, 15:采集+转换+编码+打包+发送)
 4. -i 设置打开的摄像头设备(默认/dev/video0)
-5. -o 设置写入的文件
+5. -o 设置写入的文件(配合-s选项可以写入各个阶段的数据，方便调试)
 6. -a 设置网络端的ip地址
 7. -p 设置网络端的端口号
 8. -c 设置采集图像格式: 0: YUYV(默认), 1: YUV420

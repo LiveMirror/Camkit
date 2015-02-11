@@ -73,8 +73,8 @@ int main(int argc, char *argv[])
 	struct pac_handle *pachandle = NULL;
 	struct net_handle *nethandle = NULL;
 	struct cap_param capp;
-	struct cvt_param ipup;
-	struct enc_param vpup;
+	struct cvt_param cvtp;
+	struct enc_param encp;
 	struct pac_param pacp;
 	struct net_param netp;
 	int stage = 0b00000011;
@@ -89,21 +89,21 @@ int main(int argc, char *argv[])
 	capp.pixfmt = vfmt;
 	capp.rate = 15;
 
-	ipup.inwidth = 640;
-	ipup.inheight = 480;
-	ipup.inpixfmt = vfmt;
-	ipup.outwidth = 640;
-	ipup.outheight = 480;
-	ipup.outpixfmt = ofmt;
+	cvtp.inwidth = 640;
+	cvtp.inheight = 480;
+	cvtp.inpixfmt = vfmt;
+	cvtp.outwidth = 640;
+	cvtp.outheight = 480;
+	cvtp.outpixfmt = ofmt;
 
-	vpup.src_picwidth = 640;
-	vpup.src_picheight = 480;
-	vpup.enc_picwidth = 640;
-	vpup.enc_picheight = 480;
-	vpup.chroma_interleave = 0;
-	vpup.fps = 15;
-	vpup.gop = 12;
-	vpup.bitrate = 1000;
+	encp.src_picwidth = 640;
+	encp.src_picheight = 480;
+	encp.enc_picwidth = 640;
+	encp.enc_picheight = 480;
+	encp.chroma_interleave = 0;
+	encp.fps = 15;
+	encp.gop = 12;
+	encp.bitrate = 1000;
 
 	pacp.max_pkt_len = 1400;
 	pacp.ssrc = 1234;
@@ -147,29 +147,29 @@ int main(int argc, char *argv[])
 			case 'c':
 				fmt = atoi(optarg);
 				if (fmt == 1)
-					capp.pixfmt = ipup.inpixfmt = V4L2_PIX_FMT_YUV420;
+					capp.pixfmt = V4L2_PIX_FMT_YUV420;
 				else
-					capp.pixfmt = ipup.inpixfmt = V4L2_PIX_FMT_YUYV;
+					capp.pixfmt = V4L2_PIX_FMT_YUYV;
 				break;
 			case 'w':
-				capp.width = ipup.inwidth = ipup.outwidth = vpup.src_picwidth =
-						vpup.enc_picwidth = atoi(optarg);
+				capp.width = cvtp.inwidth = cvtp.outwidth = encp.src_picwidth =
+						encp.enc_picwidth = atoi(optarg);
 				break;
 			case 'h':
-				capp.height = ipup.inheight = ipup.outheight =
-						vpup.src_picheight = vpup.enc_picheight = atoi(optarg);
+				capp.height = cvtp.inheight = cvtp.outheight =
+						encp.src_picheight = encp.enc_picheight = atoi(optarg);
 				break;
 			case 'r':
-				vpup.bitrate = atoi(optarg);
+				encp.bitrate = atoi(optarg);
 				break;
 			case 'f':
-				capp.rate = vpup.fps = atoi(optarg);
+				capp.rate = encp.fps = atoi(optarg);
 				break;
 			case 't':
-				vpup.chroma_interleave = atoi(optarg);
+				encp.chroma_interleave = atoi(optarg);
 				break;
 			case 'g':
-				vpup.gop = atoi(optarg);
+				encp.gop = atoi(optarg);
 				break;
 			default:
 				printf("Unknown option: %s\n", optarg);
@@ -194,7 +194,7 @@ int main(int argc, char *argv[])
 
 	if ((stage & 0b00000001) != 0)
 	{
-		cvthandle = convert_open(ipup);
+		cvthandle = convert_open(cvtp);
 		if (!cvthandle)
 		{
 			printf("--- Open convert failed\n");
@@ -204,7 +204,7 @@ int main(int argc, char *argv[])
 
 	if ((stage & 0b00000010) != 0)
 	{
-		enchandle = encode_open(vpup);
+		enchandle = encode_open(encp);
 		if (!enchandle)
 		{
 			printf("--- Open encode failed\n");
