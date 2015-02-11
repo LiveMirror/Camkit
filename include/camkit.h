@@ -18,8 +18,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef VIKIT_H
-#define VIKIT_H
+#ifndef CAMKIT_H
+#define CAMKIT_H
 #include "camkit/config.h"
 #include "camkit/capture.h"
 #include "camkit/convert.h"

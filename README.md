@@ -21,16 +21,15 @@ Camkit采用**cmake**构建系统，编译之前请确认已经安装了cmake。
 其中**-Dkey=value**是可以配置的选项，支持的选项如下：
 
     1. DEBUG=ON|OFF，是否打开调试选项
-    2. PLATFORM=FSL|RPI|OFF， 选择所使用的平台（Freescale, RaspberryPi或FFmpeg），具体见下文
-    3. CC=path_to_c_compiler|OFF， 指定C编译器的路径
-    4. ROOTSYS=path_to_root_sys|OFF， 指定查找库和头文件的根路径（配合3选项可以用来做交叉编译）
+    2. PLAT=FSL|RPI|PC， 选择所使用的平台（Freescale IMX, Raspberry Pi或PC），具体见下文
+    3. CMAKE_TOOLCHAIN_FILE=cross_file，用于交叉编译，具体见下文
 
 Camkit的视频采集采用标准的**V4L**接口，通常的USB摄像头均可以支持。
 
 Camkit的色彩转换和H264编码支持三种平台，分别是是：
 
-    1. FFmpeg (采用ffmpeg编码，依赖于avcodec.so和swscale.so)
-    2. Raspberry Pi (采用OpenMax硬编码，依赖于ilclient.a， vcsm.so， bcm_host.so， openmaxil.so等库，由于色彩转换部分使用了ffmpeg，因此还依赖于其中的swscale库)
+    1. PC Desktop(采用ffmpeg编码，依赖于ffmpeg中的libavutil、libavcodec和libswscale库)
+    2. Raspberry Pi (采用GPU加速，依赖于vcos，vcsm， bcm_host， openmaxil等库，由于色彩转换部分使用了ffmpeg，因此还依赖于ffmpeg中的一些库)
     3. Freescale I.MX6 (采用IPU和VPU硬编码，依赖于ipu.so和vpu.so)
 
 #### PC平台编译安装
@@ -40,7 +39,7 @@ Camkit的色彩转换和H264编码支持三种平台，分别是是：
 在Linux上编译安装非常简单，以Ubuntu为例，首先安装编译环境:
 
     ```
-    sudo apt-get install cmake libavcodec54 libavcodec-dev libswscale2 libswscale-dev 
+    sudo apt-get install cmake libavcodec54 libavcodec-dev libswscale2 libswscale-dev libavutil52 libavutil-dev #库的版本号可有会有变化，请根据不同的系统做调整
     ```
 
 然后遵循上面的构建步骤，使用如下命令构建和编译：
@@ -53,40 +52,29 @@ Camkit的色彩转换和H264编码支持三种平台，分别是是：
     make install
     ```
     
-至此，`libcamkit.so`就已经安装到你的系统里了，默认应该在`/usr/local/lib`下，头文件在`/usr/local/include`下。`demo`中的程序默认不会安装，可在`build/demo`目录下找到并运行，参照`demo`程序就可开发自己的应用了。
+安装完成将在你的电脑上创建3种文件：1. `cktool`工具；2. `libcamkit.so`库，3.开发头文件。程序的默认安装路径为`/usr/local`，可通过在构建时添加`-DCMAKE_INSTALL_PREFIX=where`选项指定其他路径。
 
 #### 树莓派平台编译安装
 
 要在树莓派上使用可以选择在PC上交叉编译，也可将源代码拷到树莓派上直接编译，这里介绍后一种方式。
 
-首先用`scp`之类的工具将Camkit的源代码拷到树莓派上，进入源码目录。由于树莓派运行的也是Linux系统，原则上可以和PC上一样使用ffmpeg库，但是实际效果非常卡顿，每秒仅有1~2帧，cpu消耗90%左右，因此推荐使用针对树莓派的OpenMax方案，下面是编译说明。
+首先用`scp`之类的工具将Camkit的源代码拷到树莓派上，进入源码目录。由于树莓派运行的也是Linux系统，原则上可以和PC上一样使用ffmpeg库，但是实际效果非常卡顿，每秒仅有1~2帧，cpu消耗90%左右，因此推荐使用针对树莓派的GPU加速方案，下面是编译说明。
 
-使用OpenMax需要一些头文件和库，这些库一般都在`/opt/vc/`目录下，不需要另外安装，除了一个库例外：`libilclient.a`。这是一个简单的封装库，可以到[github](https://github.com/raspberrypi/firmware/tree/master/opt/vc/src/hello_pi/libs/ilclient)下载源代码，两个`.c`文件、一个`.h`文件和一个`Makefile`，将[上上层目录](https://github.com/raspberrypi/firmware/tree/master/opt/vc/src/hello_pi)下的`Makefile.include`文件也下载下来。将这些文件都拷到树莓派上，用以下命令安装：
+使用GPU加速需要一些头文件和库，这些库一般都在`/opt/vc/`目录下，不需要另外安装。
 
-    ``` 
-    mkdir -p build/one/two
-    cp ilclient.h ilclient.c ilcore.c Makefile build/one/two
-    cp Makefile.include build
-    cd build/one/two
-    make
-    cp libilclient.a /opt/vc/lib
-    ```
-    
-最后一步将编译好的库拷贝到`/opt/vc/lib`目录下。
-
-除了OpenMax库之外，Camkit做色彩转换是还是使用了ffmepg中的`libswscale`库，因此需要在树莓派上先安装，方式可PC上的相同，通过`apt-get`安装`libswscale`和`libswscale-dev`即可（如何是`Arch`平台使用`pacman -S ffmpeg`）。
+除了GPU加速所需的库之外，Camkit做色彩转换时仍然使用了ffmepg，因此需要在树莓派上先安装，方式与PC上的相同，通过`sudo apt-get install libavcodec54 libavcodec-dev libswscale2 libswscale-dev libavutil52 libavutil-dev`安装（如何是`Arch`平台使用`pacman -S ffmpeg`安装）。
 
 一切都做完之后就可以编译Camkit了，进入Camkit源码目录，使用如下命令编译安装：
 
     ``` 
     mkdir build
     cd build
-    cmake ../ -DPLATFORM=RPI
+    cmake ../ -DPLAT=RPI
     make 
     make install
     ```
     
-这样，Camkit就已经安装到你的树莓派上了，路径和PC上的相同，demo程序在`build/demo`目录下。
+这样，Camkit就已经安装到你的树莓派上了，路径和PC上的相同。
 
 #### 飞思卡尔平台编译安装
 
@@ -173,7 +161,7 @@ Note:
 PS: demo目录有两个完整的例子，可以参考之。
 
 ### 实例--在树莓派上运行demo查看实时录像
-demo/cktool.c是运用Camkit的一个例子，实现了Camkit支持的全部功能。
+demo/cktool.c是运用Camkit的一个工具，实现了Camkit支持的全部功能。
 
 使用方法：
 
@@ -200,7 +188,7 @@ options：
 
     RPI(Camkit) <==> 路由器 <==> PC (VLC)
 
-首先，按照上面的讲解完成编译，在`build/demo`目录下可以看到一个`cktool`的可执行程序。
+首先，按照上面的讲解完成编译、安装。
 
 配置树莓派开启摄像头支持并分配`gpu_mem`，`Raspbian`系统通过`sudo raspi-config`，`Arch`系统参见[Wiki](https://wiki.archlinux.org/index.php/Raspberry_Pi)。
 
@@ -208,6 +196,6 @@ options：
 
 最后，在树莓派上运行：
  
-    #cktool -s 15 -a 192.168.1.2 -p 8888
+    #cktool -s 15 -a 192.168.1.2 -p 8888 
     
-至此，应该就可以在PC端看到树莓派的实时视频了。
+至此，应该就可以在PC端的VLC窗口库看到树莓派的实时视频了。
