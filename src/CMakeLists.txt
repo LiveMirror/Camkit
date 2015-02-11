@@ -1,7 +1,7 @@
 # build library
 SET(COM_SRC v4l_capture.c rtp_pack.c network.c)
 IF (PLAT STREQUAL "RPI")        ## raspberry pi
-  SET (CK_SRC ffmpeg_convert.c omx_encode.c ${COM_SRC})
+  SET (CK_SRC soft_convert.c omx_encode.c ${COM_SRC})
   AUX_SOURCE_DIRECTORY(${PROJECT_SOURCE_DIR}/third-party/ilclient/ ILCLIENT_SRC) # include ilclient sources
   SET (CK_SRC ${CK_SRC} ${ILCLIENT_SRC})
   SET(LIBS ${LIBS} GLESv2 EGL rt m) # additional libs

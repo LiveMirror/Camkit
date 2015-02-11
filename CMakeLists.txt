@@ -32,16 +32,9 @@ SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules/")
 SET (LIBS pthread)
 
 IF(PLAT STREQUAL "RPI") # raspberry pi
-    # find ffmpeg
-    FIND_PACKAGE(FFMPEG REQUIRED)
-    IF (FFMPEG_FOUND)
-        INCLUDE_DIRECTORIES(${FFMPEG_INCLUDE_DIRS})
-        SET(LIBS ${LIBS} ${FFMPEG_LIBRARIES})
-    ENDIF()
-  
     # find VideoCore libraries
     FIND_PACKAGE(VideoCore REQUIRED)
-    IF (VideoCore_FOUND)
+    IF (VIDEOCORE_FOUND)
         INCLUDE_DIRECTORIES(${VideoCore_INCLUDE_DIRS})
         SET (LIBS ${LIBS} ${VideoCore_LIBRARIES})
     ENDIF()

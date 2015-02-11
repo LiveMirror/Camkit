@@ -1,6 +1,6 @@
 # Try to find VideoCore includes and libraries
 # Once done this will define
-# VideoCore_FOUND 
+# VIDEOCORE_FOUND 
 # VideoCore_INCLUDE_DIRS
 # VideoCore_LIBRARIES
 
@@ -56,8 +56,9 @@ find_package_handle_standard_args(VideoCore DEFAULT_MSG
     BCM_HOST_INCLUDE_DIR VCOS_LIBRARY VCSM_LIBRARY BCM_HOST_LIBRARY OPENMAXIL_LIBRARY VCHIQ_ARM_LIBRARY
     )
     
-SET (VideoCore_INCLUDE_DIRS ${BCM_HOST_INCLUDE_DIR})
+SET (VideoCore_INCLUDE_DIRS ${BCM_HOST_INCLUDE_DIR} ${BCM_HOST_INCLUDE_DIR}/interface/vcos/pthreads/
+    ${BCM_HOST_INCLUDE_DIR}/interface/vmcs_host/linux/)
 SET (VideoCore_LIBRARIES ${VCOS_LIBRARY} ${VCSM_LIBRARY} ${BCM_HOST_LIBRARY} ${OPENMAXIL_LIBRARY} ${VCHIQ_ARM_LIBRARY})
-    
+
 MARK_AS_ADVANCED(VideoCore_INCLUDE_DIRS VideoCore_LIBRARIES)
     
