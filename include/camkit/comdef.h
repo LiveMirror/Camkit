@@ -20,6 +20,7 @@
 
 #ifndef COMDEF_H
 #define COMDEF_H
+#include <string.h>
 
 typedef unsigned int U32;
 #define CLEAR(x) memset (&(x), 0, sizeof (x))
