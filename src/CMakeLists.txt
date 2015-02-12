@@ -5,7 +5,6 @@ IF (PLAT STREQUAL "RPI")        ## raspberry pi
   INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/third-party/ilclient)   # ilclient headers
   AUX_SOURCE_DIRECTORY(${PROJECT_SOURCE_DIR}/third-party/ilclient/ ILCLIENT_SRC) # include ilclient sources
   SET (CK_SRC ${CK_SRC} ${ILCLIENT_SRC})
-  SET(LIBS ${LIBS} GLESv2 EGL rt m) # additional libs
 ELSEIF (PLAT STREQUAL "FSL")        ## freescale
   SET(CK_SRC ipu_convert.c vpu_encode.c ${COM_SRC})
 ELSEIF (PLAT STREQUAL "PC")      ## PC
