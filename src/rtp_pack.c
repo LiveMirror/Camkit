@@ -207,9 +207,9 @@ static int get_next_nalu(struct pac_handle *handle)
     handle->nalu.data = cur_nalu_ptr + handle->nalu.startcodeprefix_len;    // exclude the start code
     handle->nalu.len = next_ptr - cur_nalu_ptr
             - handle->nalu.startcodeprefix_len;
-    handle->nalu.forbidden_bit = handle->nalu.data[0] & 0x80;    // 1 bit
-    handle->nalu.nal_reference_idc = handle->nalu.data[0] & 0x60;    // 2 bit
-    handle->nalu.nal_unit_type = handle->nalu.data[0] & 0x1f;    // 5 bit
+    handle->nalu.forbidden_bit = handle->nalu.data[0] & 0x80 >> 7;    // 1 bit, 0b1000 0000
+    handle->nalu.nal_reference_idc = handle->nalu.data[0] & 0x60 >> 5;    // 2 bit, 0b0110 0000
+    handle->nalu.nal_unit_type = handle->nalu.data[0] & 0x1f;    // 5 bit, 0b0001 1111
 
     return 1;
 }
@@ -259,7 +259,7 @@ int pack_get(struct pac_handle *handle, void *outbuf, int bufsize, int *outsize)
             nalu_header *nalu_hdr;
             nalu_hdr = (nalu_header *) (tmp_outbuf + 12);
             nalu_hdr->F = handle->nalu.forbidden_bit;
-            nalu_hdr->NRI = handle->nalu.nal_reference_idc >> 5;
+            nalu_hdr->NRI = handle->nalu.nal_reference_idc;
             nalu_hdr->TYPE = handle->nalu.nal_unit_type;
             char *nalu_payload = tmp_outbuf + 13;    // 12 Bytes RTP header + 1 Byte NALU header
             *outsize = handle->nalu.len + 12;
@@ -296,8 +296,8 @@ int pack_get(struct pac_handle *handle, void *outbuf, int bufsize, int *outsize)
             rtp_hdr->marker = 0;
             fu_indicator *fu_ind = (fu_indicator *) (tmp_outbuf + 12);
             fu_ind->F = handle->nalu.forbidden_bit;
-            fu_ind->NRI = handle->nalu.nal_reference_idc >> 5;
-            fu_ind->TYPE = 28;    // FU_B
+            fu_ind->NRI = handle->nalu.nal_reference_idc;
+            fu_ind->TYPE = 28;    // FU_A
 
             fu_header *fu_hdr = (fu_header *) (tmp_outbuf + 13);
             fu_hdr->E = 0;
