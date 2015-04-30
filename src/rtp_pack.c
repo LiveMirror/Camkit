@@ -207,9 +207,9 @@ static int get_next_nalu(struct pac_handle *handle)
     handle->nalu.data = cur_nalu_ptr + handle->nalu.startcodeprefix_len;    // exclude the start code
     handle->nalu.len = next_ptr - cur_nalu_ptr
             - handle->nalu.startcodeprefix_len;
-    handle->nalu.forbidden_bit = handle->nalu.data[0] & 0x80 >> 7;    // 1 bit, 0b1000 0000
-    handle->nalu.nal_reference_idc = handle->nalu.data[0] & 0x60 >> 5;    // 2 bit, 0b0110 0000
-    handle->nalu.nal_unit_type = handle->nalu.data[0] & 0x1f;    // 5 bit, 0b0001 1111
+    handle->nalu.forbidden_bit = (handle->nalu.data[0] & 0x80) >> 7;    // 1 bit, 0b1000 0000
+    handle->nalu.nal_reference_idc = (handle->nalu.data[0] & 0x60) >> 5;    // 2 bit, 0b0110 0000
+    handle->nalu.nal_unit_type = (handle->nalu.data[0] & 0x1f);    // 5 bit, 0b0001 1111
 
     return 1;
 }
