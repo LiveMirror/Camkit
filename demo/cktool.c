@@ -72,11 +72,15 @@ int main(int argc, char *argv[])
 	struct enc_handle *enchandle = NULL;
 	struct pac_handle *pachandle = NULL;
 	struct net_handle *nethandle = NULL;
+	struct tms_handle *tmshandle = NULL;
+
 	struct cap_param capp;
 	struct cvt_param cvtp;
 	struct enc_param encp;
 	struct pac_param pacp;
 	struct net_param netp;
+	struct tms_param tmsp;
+
 	int stage = 0b00000011;
 
 	U32 vfmt = V4L2_PIX_FMT_YUYV;
@@ -111,6 +115,11 @@ int main(int argc, char *argv[])
 	netp.serip = NULL;
 	netp.serport = -1;
 	netp.type = UDP;
+
+	tmsp.startx = 10;
+	tmsp.starty = 10;
+	tmsp.video_width = 640;
+	tmsp.factor = 0;
 
 	char *outfile = NULL;
 	// options
@@ -239,6 +248,9 @@ int main(int argc, char *argv[])
 		}
 	}
 
+	// timestamp try
+	tmshandle = timestamp_open(tmsp);
+
 	// start capture encode loop
 	int ret;
 	void *cap_buf, *cvt_buf, *hd_buf, *enc_buf;
@@ -329,6 +341,9 @@ int main(int argc, char *argv[])
 		}
 		if (debug)
 			fputc('-', stdout);
+
+		// here add timestamp
+		timestamp_draw(tmshandle, cvt_buf);
 
 		if ((stage & 0b00000010) == 0)		// no encode
 		{
@@ -468,6 +483,8 @@ int main(int argc, char *argv[])
 	if ((stage & 0b00000001) != 0)
 		convert_close(cvthandle);
 	capture_close(caphandle);
+
+	timestamp_close(tmshandle);
 
 	if (outfd)
 		fclose(outfd);
