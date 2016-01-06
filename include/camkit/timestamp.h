@@ -18,14 +18,24 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef CAMKIT_H
-#define CAMKIT_H
-#include "camkit/config.h"
-#include "camkit/capture.h"
-#include "camkit/convert.h"
-#include "camkit/encode.h"
-#include "camkit/pack.h"
-#include "camkit/network.h"
-#include "camkit/timestamp.h"
+#ifndef INCLUDE_TIMESTAMP_H_
+#define INCLUDE_TIMESTAMP_H_
+#include "comdef.h"
 
-#endif
+struct timestamp_param
+{
+	int startx;             // distance to the left (px)
+	int starty;             // distance to the top (px)
+	int width;              // the video width
+	int factor;             // size of text, [0 .. 1]
+};
+
+struct timestamp_handle;
+
+struct timestamp_handle *timestamp_open(struct timestamp_param params);
+
+void timestamp_draw(struct timestamp_handle *handle, unsigned char *image);
+
+void timestamp_close(struct timestamp_handle *handle);
+
+#endif /* INCLUDE_TIMESTAMP_H_ */
