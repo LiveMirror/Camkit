@@ -1213,7 +1213,6 @@ struct tms_handle {
 	int video_width;        // the video width
     int factor;             // size of text, [0 .. 1]
 
-	struct tms_param params;
 };
 
 struct tms_handle *timestamp_open(struct tms_param params)
@@ -1227,10 +1226,10 @@ struct tms_handle *timestamp_open(struct tms_param params)
     }
 
 	CLEAR(*handle);
-    handle->params.startx = params.startx;
-    handle->params.starty = params.starty;
-	handle->params.video_width = params.video_width;
-    handle->params.factor = params.factor;
+    handle->startx = params.startx;
+    handle->starty = params.starty;
+	handle->video_width = params.video_width;
+    handle->factor = params.factor;
 
 	initialize_chars();
 
