@@ -1,5 +1,5 @@
 # build library
-SET(COM_SRC v4l_capture.c rtp_pack.c network.c)
+SET(COM_SRC v4l_capture.c rtp_pack.c network.c timestamp.c)
 IF (PLAT STREQUAL "RPI")        ## raspberry pi
   SET (CK_SRC soft_convert.c omx_encode.c ${COM_SRC})
   INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/third-party/ilclient)   # ilclient headers

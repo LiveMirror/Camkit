@@ -1212,7 +1212,9 @@ struct tms_handle {
     int starty;             // distance to the top (px)
 	int video_width;        // the video width
     int factor;             // size of text, [0 .. 1]
-}
+
+	struct tms_param params;
+};
 
 struct tms_handle *timestamp_open(struct tms_param params)
 {
