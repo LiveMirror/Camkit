@@ -27,7 +27,7 @@ struct tms_param
 	int startx;             // distance to the left (px)
 	int starty;             // distance to the top (px)
 	int video_width;        // the video width
-	int factor;             // size of text, [0 .. 1]
+	int factor;             // size of text, [0 or 1]
 };
 
 struct tms_handle;
