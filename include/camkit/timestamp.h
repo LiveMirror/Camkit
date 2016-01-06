@@ -22,20 +22,20 @@
 #define INCLUDE_TIMESTAMP_H_
 #include "comdef.h"
 
-struct timestamp_param
+struct tms_param
 {
 	int startx;             // distance to the left (px)
 	int starty;             // distance to the top (px)
-	int width;              // the video width
+	int video_width;              // the video width
 	int factor;             // size of text, [0 .. 1]
 };
 
-struct timestamp_handle;
+struct tms_handle;
 
-struct timestamp_handle *timestamp_open(struct timestamp_param params);
+struct tms_handle *timestamp_open(struct tms_param params);
 
-void timestamp_draw(struct timestamp_handle *handle, unsigned char *image);
+void timestamp_draw(struct tms_handle *handle, unsigned char *image);
 
-void timestamp_close(struct timestamp_handle *handle);
+void timestamp_close(struct tms_handle *handle);
 
 #endif /* INCLUDE_TIMESTAMP_H_ */

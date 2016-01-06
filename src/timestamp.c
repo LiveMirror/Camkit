@@ -1207,17 +1207,17 @@ int initialize_chars(void)
 
 // coding by dodo.
 
-struct timestamp_handle {
+struct tms_handle {
     int startx;             // distance to the left (px)
     int starty;             // distance to the top (px)
-	int width;              // the video width
+	int video_width;        // the video width
     int factor;             // size of text, [0 .. 1]
 }
 
-struct timestamp_handle *timestamp_open(struct timestamp_param params)
+struct tms_handle *timestamp_open(struct tms_param params)
 {
-	struct timestamp_handle *handle = (struct timestamp_handle *) malloc(
-            sizeof(struct timestamp_handle));
+	struct tms_handle *handle = (struct tms_handle *) malloc(
+            sizeof(struct tms_handle));
     if (!handle)
     {
         printf("--- malloc timestamp handle failed\n");
@@ -1227,7 +1227,7 @@ struct timestamp_handle *timestamp_open(struct timestamp_param params)
 	CLEAR(*handle);
     handle->params.startx = params.startx;
     handle->params.starty = params.starty;
-	handle->params.width = params.width;
+	handle->params.video_width = params.video_width;
     handle->params.factor = params.factor;
 
 	initialize_chars();
@@ -1236,7 +1236,7 @@ struct timestamp_handle *timestamp_open(struct timestamp_param params)
     return handle;
 }
 
-void timestamp_close(struct timestamp_handle *handle)
+void timestamp_close(struct tms_handle *handle)
 {
     free(handle);
     printf("+++ Timestamp Closed\n");
@@ -1245,12 +1245,12 @@ void timestamp_close(struct timestamp_handle *handle)
 /*
 * draw timestamp on the video
 */
-void timestamp_draw(struct timestamp_handle *handle, unsigned char *image)
+void timestamp_draw(struct tms_handle *handle, unsigned char *image)
 {
     time_t capturetime = time(NULL);
     char timestamp[32];
     struct tm* tm_timestamp;
     tm_timestamp = localtime(&capturetime);
     strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S (%Z)", tm_timestamp);
-    draw_text(image, handle->startx, handle->starty, handle->width, timestamp, handle->factor);
+    draw_text(image, handle->startx, handle->starty, handle->video_width, timestamp, handle->factor);
 }
