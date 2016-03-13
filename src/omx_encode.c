@@ -121,7 +121,7 @@ struct enc_handle *encode_open(struct enc_param param)
 
 	def.format.video.nFrameWidth = handle->params.src_picwidth;
 	def.format.video.nFrameHeight = handle->params.src_picheight;
-	def.format.video.xFramerate = handle->params.fps;
+	def.format.video.xFramerate = handle->params.fps << 16;
 	def.format.video.nSliceHeight = def.format.video.nFrameHeight;
 	def.format.video.nStride = def.format.video.nFrameWidth;
 	def.format.video.eColorFormat = OMX_COLOR_FormatYUV420PackedPlanar;
