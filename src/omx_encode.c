@@ -319,27 +319,31 @@ int encode_do(struct enc_handle *handle, void *ibuf, int ilen, void **pobuf,
 	OMX_BUFFERHEADERTYPE *buf;
 
 	buf = ilclient_get_input_buffer(handle->video_encode, OMX_VIDENC_INPUT_PORT,
-			1);
-	if (buf == NULL)
+			0);  // 0:non-block, 1:block, set to non-block to avoid freezing after long time encode
+
+	if (buf != NULL)    // emtpy this buffer only when the buf is not NULL
 	{
-		printf("!!! no buffers for me!\n");
+		memcpy(buf->pBuffer, ibuf, ilen);
+		buf->nFilledLen = ilen;
+
+		if (OMX_EmptyThisBuffer(ILC_GET_HANDLE(handle->video_encode), buf)
+				!= OMX_ErrorNone) {
+			printf("!!! Failed to empty ilclient input buffer\n");
+		}
+	}
+
+        // no matter buf above is NULL or not, call get output buffer
+	handle->out = ilclient_get_output_buffer(handle->video_encode,
+	OMX_VIDENC_OUTPUT_PORT, 1);    // block
+        if (handle->out == NULL)    // shouldn't equal NULL, since it's block getting
+	{
+		printf("--- Failed to get ilclient output buffer\n");
 		*pobuf = NULL;
 		*polen = 0;
 		*type = NONE;
 		return -1;
 	}
-
-	memcpy(buf->pBuffer, ibuf, ilen);
-	buf->nFilledLen = ilen;
-
-	if (OMX_EmptyThisBuffer(ILC_GET_HANDLE(handle->video_encode), buf)
-			!= OMX_ErrorNone)
-	{
-		printf("!!! Error emptying buffer\n");
-	}
-
-	handle->out = ilclient_get_output_buffer(handle->video_encode,
-	OMX_VIDENC_OUTPUT_PORT, 1);
+        
 	OMX_ERRORTYPE ret = OMX_FillThisBuffer(ILC_GET_HANDLE(handle->video_encode),
 			handle->out);
 	if (ret != OMX_ErrorNone)
@@ -347,14 +351,6 @@ int encode_do(struct enc_handle *handle, void *ibuf, int ilen, void **pobuf,
 		printf("!!! Error filling buffer: %x\n", ret);
 	}
 
-	if (handle->out == NULL)
-	{
-		printf("!!! not getting out\n");
-		*pobuf = NULL;
-		*polen = 0;
-		*type = NONE;
-		return -1;
-	}
 
 	if (handle->out->nFlags & OMX_BUFFERFLAG_CODECCONFIG)
 	{
@@ -367,7 +363,7 @@ int encode_do(struct enc_handle *handle, void *ibuf, int ilen, void **pobuf,
 	*pobuf = handle->out->pBuffer;
 	*polen = handle->out->nFilledLen;
 	handle->out->nFilledLen = 0;    // set to 0 at end
-	*type = NONE;    // TODO
+	*type = NONE;    // TODO: how to get the type?
 	handle->frame_counter++;
 
 	return 0;
