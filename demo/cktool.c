@@ -31,7 +31,6 @@
 #include <stdint.h>
 #include "camkit.h"
 
-#define MAX_RTP_SIZE 1420
 FILE *outfd = NULL;
 int quit = 0;
 int debug = 0;
@@ -253,8 +252,7 @@ int main(int argc, char *argv[])
 
 	// start capture encode loop
 	int ret;
-	void *cap_buf, *cvt_buf, *hd_buf, *enc_buf;
-	char *pac_buf = (char *) malloc(MAX_RTP_SIZE);
+	void *cap_buf, *cvt_buf, *hd_buf, *enc_buf, *pac_buf;
 	int cap_len, cvt_len, hd_len, enc_len, pac_len;
 	enum pic_t ptype;
 	struct timeval ctime, ltime;
@@ -371,7 +369,7 @@ int main(int argc, char *argv[])
 
 			// pack headers
 			pack_put(pachandle, hd_buf, hd_len);
-			while (pack_get(pachandle, pac_buf, MAX_RTP_SIZE, &pac_len) == 1)
+			while (pack_get(pachandle, &pac_buf, &pac_len) == 1)
 			{
 				if (debug)
 					fputc('#', stdout);
@@ -447,7 +445,7 @@ int main(int argc, char *argv[])
 
 		// pack
 		pack_put(pachandle, enc_buf, enc_len);
-		while (pack_get(pachandle, pac_buf, MAX_RTP_SIZE, &pac_len) == 1)
+		while (pack_get(pachandle, &pac_buf, &pac_len) == 1)
 		{
 			if (debug)
 				fputc('#', stdout);
@@ -473,7 +471,6 @@ int main(int argc, char *argv[])
 	}
 	capture_stop(caphandle);
 
-	free(pac_buf);
 	if ((stage & 0b00001000) != 0)
 		net_close(nethandle);
 	if ((stage & 0b00000100) != 0)
