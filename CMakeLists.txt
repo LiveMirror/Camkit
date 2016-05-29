@@ -5,7 +5,7 @@ PROJECT(CAMKIT C) # CAmera toolKIT
 
 # version
 SET(CK_MAJOR 0)
-SET(CK_MINOR 1)
+SET(CK_MINOR 2)
 SET(CK_BUILD 0)
 
 SET(CK_VERSION ${CK_MAJOR}.${CK_MINOR}.${CK_BUILD})
@@ -65,10 +65,16 @@ INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/include/)
 
 # public headers
 SET(CK_IDX_HDR ${PROJECT_SOURCE_DIR}/include/camkit.h)
-SET(CK_HDRS ${PROJECT_SOURCE_DIR}/include/camkit/convert.h 
-    ${PROJECT_SOURCE_DIR}/include/camkit/capture.h ${PROJECT_SOURCE_DIR}/include/camkit/encode.h
-    ${PROJECT_SOURCE_DIR}/include/camkit/pack.h ${PROJECT_SOURCE_DIR}/include/camkit/network.h 
-    ${PROJECT_SOURCE_DIR}/include/camkit/comdef.h)
+SET(CK_HDRS 
+    ${PROJECT_SOURCE_DIR}/include/camkit/capture.h
+    ${PROJECT_SOURCE_DIR}/include/camkit/comdef.h
+    ${PROJECT_SOURCE_DIR}/include/camkit/config.h
+    ${PROJECT_SOURCE_DIR}/include/camkit/convert.h 
+    ${PROJECT_SOURCE_DIR}/include/camkit/encode.h
+    ${PROJECT_SOURCE_DIR}/include/camkit/network.h 
+    ${PROJECT_SOURCE_DIR}/include/camkit/pack.h
+    ${PROJECT_SOURCE_DIR}/include/camkit/timestamp.h 
+    )
 
 # configuration file
 CONFIGURE_FILE(${PROJECT_SOURCE_DIR}/config.h.in ${PROJECT_SOURCE_DIR}/include/camkit/config.h)
@@ -76,7 +82,6 @@ SET(CK_HDRS ${CK_HDRS} ${PROJECT_SOURCE_DIR}/include/camkit/config.h)
 
 # sub directories
 ADD_SUBDIRECTORY(src)
-ADD_SUBDIRECTORY(demo)
 #ADD_SUBDIRECTORY(test)
 
 # print out compile configurations

@@ -12,6 +12,8 @@
 #include <ctype.h>
 #include <stddef.h>
 #include <time.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include "camkit/timestamp.h"
 
 /* Highest ascii value is 126 (~) */
