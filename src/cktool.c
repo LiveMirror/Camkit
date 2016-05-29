@@ -76,8 +76,6 @@ static void display_version(void)
 
 int main(int argc, char *argv[])
 {
-	display_version();
-
 	struct cap_handle *caphandle = NULL;
 	struct cvt_handle *cvthandle = NULL;
 	struct enc_handle *enchandle = NULL;
@@ -207,6 +205,9 @@ int main(int argc, char *argv[])
 		outfd = fopen(outfile, "wb");
 
 	signal(SIGINT, quit_func);
+
+	// print version when start work
+	display_version();
 
 	caphandle = capture_open(capp);
 	if (!caphandle)
