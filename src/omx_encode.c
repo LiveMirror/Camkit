@@ -28,12 +28,16 @@
 #define OMX_VIDENC_INPUT_PORT 200
 #define OMX_VIDENC_OUTPUT_PORT 201
 
+#define MAX_SIZE_COMBINATION_BUFFER	(128 * 1024)	// 128k is enough
+
 struct enc_handle
 {
 	COMPONENT_T *video_encode;
 	COMPONENT_T *list[5];
 	ILCLIENT_T *client;
 	OMX_BUFFERHEADERTYPE *out;
+	void *combination_buffer;
+	unsigned long combination_buffer_ptr;
 	unsigned long frame_counter;
 
 	struct enc_param params;
@@ -62,6 +66,13 @@ struct enc_handle *encode_open(struct enc_param param)
 	}
 
 	CLEAR(*handle);
+	handle->combination_buffer = malloc(MAX_SIZE_COMBINATION_BUFFER);
+	if (!handle->combination_buffer)
+	{
+		printf("--- Failed to malloc combination buffer of size: %d", MAX_SIZE_COMBINATION_BUFFER);
+		goto err0;
+	}
+	handle->combination_buffer_ptr = 0;
 	handle->video_encode = NULL;
 	memset(handle->list, 0, sizeof(handle->list));
 	handle->client = NULL;
@@ -309,6 +320,7 @@ void encode_close(struct enc_handle *handle)
 	ilclient_cleanup_components(handle->list);
 	OMX_Deinit();
 	ilclient_destroy(handle->client);
+	free(handle->combination_buffer);
 	free(handle);
 	printf("+++ Encode Closed\n");
 }
@@ -316,8 +328,11 @@ void encode_close(struct enc_handle *handle)
 int encode_do(struct enc_handle *handle, void *ibuf, int ilen, void **pobuf,
 		int *polen, enum pic_t *type)
 {
-	OMX_BUFFERHEADERTYPE *buf;
+	*pobuf = NULL;
+	*polen = 0;
+	*type = NONE;
 
+	OMX_BUFFERHEADERTYPE *buf;
 	buf = ilclient_get_input_buffer(handle->video_encode, OMX_VIDENC_INPUT_PORT,
 			0);  // 0:non-block, 1:block, set to non-block to avoid freezing after long time encode
 
@@ -327,20 +342,19 @@ int encode_do(struct enc_handle *handle, void *ibuf, int ilen, void **pobuf,
 		buf->nFilledLen = ilen;
 
 		if (OMX_EmptyThisBuffer(ILC_GET_HANDLE(handle->video_encode), buf)
-				!= OMX_ErrorNone) {
-			printf("!!! Failed to empty ilclient input buffer\n");
+				!= OMX_ErrorNone)
+		{
+			printf("--- Failed to empty ilclient input buffer\n");
+			return -1;
 		}
 	}
 
-        // no matter buf above is NULL or not, call get output buffer
+    // no matter buf above is NULL or not, call get output buffer
 	handle->out = ilclient_get_output_buffer(handle->video_encode,
 	OMX_VIDENC_OUTPUT_PORT, 1);    // block
-        if (handle->out == NULL)    // shouldn't equal NULL, since it's block getting
+	if (handle->out == NULL)    // shouldn't equal NULL, since it's block getting
 	{
 		printf("--- Failed to get ilclient output buffer\n");
-		*pobuf = NULL;
-		*polen = 0;
-		*type = NONE;
 		return -1;
 	}
         
@@ -348,30 +362,75 @@ int encode_do(struct enc_handle *handle, void *ibuf, int ilen, void **pobuf,
 			handle->out);
 	if (ret != OMX_ErrorNone)
 	{
-		printf("!!! Error filling buffer: %x\n", ret);
+		printf("--- Error filling ilclient output buffer: %x\n", ret);
+		return -1;
 	}
 
-
-	if (handle->out->nFlags & OMX_BUFFERFLAG_CODECCONFIG)
+	OMX_U32 flag = handle->out->nFlags;
+	if ((flag == 0) &&
+			(handle->out->nFilledLen == 0)) // sometimes there are partial frames that have flag == 0 but len != 0, need to exclude these cases
 	{
-//        int i;
-//        for (i = 0; i < handle->out->nFilledLen; i++)
-//            printf("%x ", handle->out->pBuffer[i]);
-//        printf("\n");
+		// output nothing
+		// not an error, this means need more data for encoding?
+	}
+	else if (!(flag & OMX_BUFFERFLAG_CODECCONFIG) &&
+			(flag & OMX_BUFFERFLAG_ENDOFFRAME))	// it's a whole I/B/P frame
+	{
+		*pobuf = handle->out->pBuffer;
+		*polen = handle->out->nFilledLen;
+		*type = NONE;    // TODO: how to get the type?
+		handle->frame_counter++;
+	}
+	else	// PPS/SPS or part frame, combination is needed
+	{
+		// SPS/PPS will be combined with I-frame, part frame will
+		// be combined to whole
+		handle->combination_buffer_ptr = 0;
+		// copy the first part
+		memcpy(handle->combination_buffer + 0, handle->out->pBuffer, handle->out->nFilledLen);
+		handle->combination_buffer_ptr += handle->out->nFilledLen;
+
+		while (1)
+		{
+			OMX_ERRORTYPE ret = OMX_FillThisBuffer(ILC_GET_HANDLE(handle->video_encode),
+					handle->out);
+			if (ret != OMX_ErrorNone)
+			{
+				printf("--- Error filling ilclient output buffer: %x\n", ret);
+				return -1;
+			}
+
+			if ((handle->out->nFlags == 0) &&
+					(handle->out->nFilledLen == 0))		// break if output nothing
+				break;
+
+			// copy the remaining part
+			memcpy(handle->combination_buffer + handle->combination_buffer_ptr,
+					handle->out->pBuffer, handle->out->nFilledLen);
+			handle->combination_buffer_ptr += handle->out->nFilledLen;
+
+			flag = handle->out->nFlags;	// get new flag
+			if ((flag & OMX_BUFFERFLAG_ENDOFFRAME)
+					&& !(flag & OMX_BUFFERFLAG_CODECCONFIG))	// finish if it's end of frame and not SPS/PPS, SPS/PPS will continue to be combined with I-frame
+				break;
+
+			handle->out->nFlags = handle->out->nFilledLen = 0;	// continue with cleared flag and len
+		}
+
+		*pobuf = handle->combination_buffer;
+		*polen = handle->combination_buffer_ptr;
+		*type = NONE;    // TODO: how to get the type?
+		handle->frame_counter++;
 	}
 
-	*pobuf = handle->out->pBuffer;
-	*polen = handle->out->nFilledLen;
 	handle->out->nFilledLen = 0;    // set to 0 at end
-	*type = NONE;    // TODO: how to get the type?
-	handle->frame_counter++;
-
 	return 0;
 }
 
 int encode_get_headers(struct enc_handle *handle, void **pbuf, int *plen,
 		enum pic_t *type)
 {
+	// SPS/PPS is combined with I-frame in encode_do(), here is just a placeholder
     UNUSED(handle);
 
 	*pbuf = NULL;
