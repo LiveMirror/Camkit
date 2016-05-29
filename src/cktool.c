@@ -174,7 +174,7 @@ int main(int argc, char *argv[])
 				break;
 			case 'w':
 				capp.width = cvtp.inwidth = cvtp.outwidth = encp.src_picwidth =
-						encp.enc_picwidth = atoi(optarg);
+						encp.enc_picwidth = tmsp.video_width = atoi(optarg);
 				break;
 			case 'h':
 				capp.height = cvtp.inheight = cvtp.outheight =

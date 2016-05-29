@@ -158,7 +158,7 @@ Note:
 
 PS: src目录有两个完整的例子，可以参考之。
 
-### 实例--在树莓派上运行demo查看实时录像
+### 实例--在树莓派上运行cktool查看实时录像
 src/cktool.c是运用Camkit的一个工具，实现了Camkit支持的全部功能。
 
 使用方法：
@@ -190,7 +190,7 @@ options：
 
 配置树莓派开启摄像头支持并分配`gpu_mem`，`Raspbian`系统通过`sudo raspi-config`，`Arch`系统参见[Wiki](https://wiki.archlinux.org/index.php/Raspberry_Pi)。
 
-然后，在PC上用记事本打开`demo/video.sdp`文件，修改ip地址为PC的ip地址，假设为`192.168.1.2`，设置端口，假设为`8888`。运行VLC播放器，打开demo/video.sdp文件。
+然后，在PC上用记事本打开`video.sdp`文件，修改ip地址为PC的ip地址，假设为`192.168.1.2`，设置端口，假设为`8888`。运行VLC播放器，打开demo/video.sdp文件。
 
 最后，在树莓派上运行：
  
