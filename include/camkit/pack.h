@@ -43,13 +43,11 @@ void pack_put(struct pac_handle *handle, void *inbuf, int isize);
 /**
  * @brief Get a requested packet
  * @param handle the pack handle
- * @param outbuf the out buffer where the packet will write to
- * @param bufsize the size of the out buffer
+ * @param poutbuf the out packet
  * @param outsize the size of the packet
  * @note the bufsize should be bigger than *outsize
  */
-int pack_get(struct pac_handle *handle, void *outbuf, int bufsize,
-        int *outsize);
+int pack_get(struct pac_handle *handle, void **poutbuf, int *outsize);
 
 void pack_close(struct pac_handle *handle);
 

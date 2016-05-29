@@ -26,7 +26,6 @@
 #include <linux/videodev2.h>
 #include "camkit.h"
 
-#define MAX_RTP_SIZE 1420
 #define WIDTH 640
 #define HEIGHT 480
 #define FRAMERATE 15
@@ -76,7 +75,7 @@ int main(int argc, char *argv[])
 	encp.gop = 30;
 	encp.bitrate = 800;
 
-	pacp.max_pkt_len = MAX_RTP_SIZE - 20;
+	pacp.max_pkt_len = 1400;
 	pacp.ssrc = 10;
 
     netp.type = UDP;
@@ -120,8 +119,7 @@ int main(int argc, char *argv[])
 
 	// start stream loop
 	int ret;
-	void *cap_buf, *cvt_buf, *hd_buf, *enc_buf;
-	char *pac_buf = (char *) malloc(MAX_RTP_SIZE);
+	void *cap_buf, *cvt_buf, *hd_buf, *enc_buf, *pac_buf;
 	int cap_len, cvt_len, hd_len, enc_len, pac_len;
 	enum pic_t ptype;
 	unsigned long framecount = 0;
@@ -170,7 +168,7 @@ int main(int argc, char *argv[])
 		{
             //fwrite(hd_buf, 1, hd_len, dumpfile);
 			pack_put(pachandle, hd_buf, hd_len);
-			while (pack_get(pachandle, pac_buf, MAX_RTP_SIZE, &pac_len) == 1)
+			while (pack_get(pachandle, &pac_buf, &pac_len) == 1)
 			{
                 ret = net_send(nethandle, pac_buf, pac_len);
 				if (ret != pac_len)
@@ -198,7 +196,7 @@ int main(int argc, char *argv[])
         //fwrite(enc_buf, 1, enc_len, dumpfile);
 		// RTP pack and send
 		pack_put(pachandle, enc_buf, enc_len);
-		while (pack_get(pachandle, pac_buf, MAX_RTP_SIZE, &pac_len) == 1)
+		while (pack_get(pachandle, &pac_buf, &pac_len) == 1)
 		{
             ret = net_send(nethandle, pac_buf, pac_len);
 			if (ret != pac_len)
@@ -212,7 +210,6 @@ int main(int argc, char *argv[])
 	}
 	capture_stop(caphandle);
 
-	free(pac_buf);
     net_close(nethandle);
 	pack_close(pachandle);
 	encode_close(enchandle);

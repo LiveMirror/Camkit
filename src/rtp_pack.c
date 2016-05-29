@@ -27,6 +27,7 @@
 #include "camkit/pack.h"
 
 #define H264    96
+#define MAX_OUTBUF_SIZE 10 * 1024	// 10k should be enough, normally it's less then MTU (1500)
 
 typedef struct
 {
@@ -84,6 +85,8 @@ typedef struct
 struct pac_handle
 {
     void *inbuf;
+    void *outbuf;
+    int outbuf_ptr;
     char *next_nalu_ptr;
     int inbuf_size;
     int FU_counter;
@@ -113,6 +116,13 @@ struct pac_handle *pack_open(struct pac_param params)
     if (!handle) return NULL;
 
     CLEAR(*handle);
+    handle->outbuf = malloc(MAX_OUTBUF_SIZE);
+    if (!handle->outbuf)
+    {
+    	printf("--- Failed to malloc RTP output buffer of size: %d", MAX_OUTBUF_SIZE);
+    	goto err0;
+    }
+    handle->outbuf_ptr = 0;
     handle->FU_index = 0;
     handle->nalu.data = NULL;
     handle->seq_num = 0;
@@ -123,10 +133,14 @@ struct pac_handle *pack_open(struct pac_param params)
 
     printf("+++ Pack Opened\n");
     return handle;
+
+    err0:free(handle);
+    return NULL;
 }
 
 void pack_close(struct pac_handle *handle)
 {
+	free(handle->outbuf);
     free(handle);
     printf("+++ Pack Closed\n");
 }
@@ -222,14 +236,15 @@ static void dump_nalu(const nalu_t *nalu)
     printf("nal_unit_type: %x\n", nalu->nal_unit_type);
 }
 
-int pack_get(struct pac_handle *handle, void *outbuf, int bufsize, int *outsize)
+int pack_get(struct pac_handle *handle, void **poutbuf, int *outsize)
 {
     int ret;
 
     if (handle->inbuf_complete) return 0;
 
-    memset(outbuf, 0, bufsize);    // !!! this is important, missing this may cause werid problems, like VLC displays nothing when the buf is small!
-    char *tmp_outbuf = (char *) outbuf;
+    // clear output buffer first
+    memset(handle->outbuf, 0, MAX_OUTBUF_SIZE);    // !!! this is important, missing this may cause werid problems, like VLC displays nothing when the buf is small!
+    char *tmp_outbuf = (char *) handle->outbuf;
     // set common rtp header
     rtp_header *rtp_hdr;
     rtp_hdr = (rtp_header *) tmp_outbuf;
@@ -263,15 +278,17 @@ int pack_get(struct pac_handle *handle, void *outbuf, int bufsize, int *outsize)
             nalu_hdr->TYPE = handle->nalu.nal_unit_type;
             char *nalu_payload = tmp_outbuf + 13;    // 12 Bytes RTP header + 1 Byte NALU header
             *outsize = handle->nalu.len + 12;
-            if (bufsize < *outsize)    // check size
+            if (MAX_OUTBUF_SIZE < *outsize)    // check size
             {
-                printf("--- buffer size %d < pack size %d\n", bufsize,
+                printf("--- RTP max output buffer size %d < pack size %d\n", MAX_OUTBUF_SIZE,
                         *outsize);
                 abort();
             }
             memcpy(nalu_payload, handle->nalu.data + 1, handle->nalu.len - 1);    // exclude the nalu header
 
             handle->nalu_complete = 1;
+
+            *poutbuf = handle->outbuf;
             return 1;
         }
         else    // fragment needed
@@ -306,9 +323,9 @@ int pack_get(struct pac_handle *handle, void *outbuf, int bufsize, int *outsize)
             fu_hdr->TYPE = handle->nalu.nal_unit_type;
             char *nalu_payload = tmp_outbuf + 14;
             *outsize = handle->params.max_pkt_len + 14;    // RTP header + FU indicator + FU header
-            if (bufsize < *outsize)
+            if (MAX_OUTBUF_SIZE < *outsize)
             {
-                printf("--- buffer size %d < pack size %d\n", bufsize,
+                printf("--- RTP max output buffer size %d < pack size %d\n", MAX_OUTBUF_SIZE,
                         *outsize);
                 abort();
             }
@@ -318,6 +335,7 @@ int pack_get(struct pac_handle *handle, void *outbuf, int bufsize, int *outsize)
             handle->nalu_complete = 0;    // not complete
             handle->FU_index++;
 
+            *poutbuf = handle->outbuf;
             return 1;
         }
     }
@@ -342,9 +360,9 @@ int pack_get(struct pac_handle *handle, void *outbuf, int bufsize, int *outsize)
             fu_hdr->E = 1;    // the last EU
             char *nalu_payload = tmp_outbuf + 14;
             *outsize = handle->last_FU_size - 1 + 14;
-            if (bufsize < *outsize)
+            if (MAX_OUTBUF_SIZE < *outsize)
             {
-                printf("--- buffer size %d < pack size %d\n", bufsize,
+                printf("--- RTP max output buffer size %d < pack size %d\n", MAX_OUTBUF_SIZE,
                         *outsize);
                 abort();
             }
@@ -355,6 +373,8 @@ int pack_get(struct pac_handle *handle, void *outbuf, int bufsize, int *outsize)
 
             handle->nalu_complete = 1;    // this nalu is complete
             handle->FU_index = 0;
+
+            *poutbuf = handle->outbuf;
             return 1;
         }
         else    // middle FUs
@@ -373,9 +393,9 @@ int pack_get(struct pac_handle *handle, void *outbuf, int bufsize, int *outsize)
 
             char *nalu_payload = tmp_outbuf + 14;
             *outsize = handle->params.max_pkt_len + 14;
-            if (bufsize < *outsize)
+            if (MAX_OUTBUF_SIZE < *outsize)
             {
-                printf("--- buffer size %d < pack size %d\n", bufsize,
+                printf("--- RTP max output buffer size %d < pack size %d\n", MAX_OUTBUF_SIZE,
                         *outsize);
                 abort();
             }
@@ -385,6 +405,8 @@ int pack_get(struct pac_handle *handle, void *outbuf, int bufsize, int *outsize)
                     handle->params.max_pkt_len);
 
             handle->FU_index++;
+
+            *poutbuf = handle->outbuf;
             return 1;
         }
     }
