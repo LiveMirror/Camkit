@@ -35,15 +35,16 @@ FILE *outfd = NULL;
 int quit = 0;
 int debug = 0;
 
-void quit_func(int sig)
+static void quit_func(int sig)
 {
 	quit = 1;
 }
 
-void display_usage(void)
+static void display_usage(void)
 {
 	printf("Usage: #cktool [options]\n");
 	printf("-? help\n");
+	printf("-v version\n");
 	printf("-d debug on\n");
 	printf("-s 0/1/3/7/15 set stage, "
 			"\n\t0: capture only"
@@ -64,8 +65,19 @@ void display_usage(void)
 	printf("-g size of group of pictures (12)\n");
 }
 
+static void display_version(void)
+{
+	printf("CAMKIT - CAMera toolKIT\n");
+	printf("Version: %s, built on %s %s\n", version, __TIME__, __DATE__);
+	printf("Project homepage: http://git.oschina.net/andyspider/Camkit\n");
+	printf("Report bugs to AndyHuang (andy@andy87.com)\n");
+	printf("\n");
+}
+
 int main(int argc, char *argv[])
 {
+	display_version();
+
 	struct cap_handle *caphandle = NULL;
 	struct cvt_handle *cvthandle = NULL;
 	struct enc_handle *enchandle = NULL;
@@ -123,7 +135,7 @@ int main(int argc, char *argv[])
 	char *outfile = NULL;
 	// options
 	int opt = 0;
-	static const char *optString = "?di:o:a:p:w:h:r:f:t:g:s:c:";
+	static const char *optString = "?vdi:o:a:p:w:h:r:f:t:g:s:c:";
 
 	opt = getopt(argc, argv, optString);
 	while (opt != -1)
@@ -133,6 +145,9 @@ int main(int argc, char *argv[])
 		{
 			case '?':
 				display_usage();
+				return 0;
+			case 'v':
+				display_version();
 				return 0;
 			case 'd':
 				debug = 1;
@@ -462,7 +477,7 @@ int main(int argc, char *argv[])
 			ret = net_send(nethandle, pac_buf, pac_len);
 			if (ret != pac_len)
 			{
-				printf("send pack failed, size: %d, err: %s\n", pac_len,
+				printf("!!! send pack failed, size: %d, err: %s\n", pac_len,
 						strerror(errno));
 			}
 			if (debug)
